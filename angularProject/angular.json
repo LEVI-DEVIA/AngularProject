@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "angularProject": {
+    "assignment-app": {
       "projectType": "application",
       "schematics": {},
       "root": "",
@@ -13,7 +13,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": "dist/angular-project",
+            "outputPath": "dist/assignment-app",
             "index": "src/index.html",
             "browser": "src/main.ts",
             "polyfills": [
@@ -30,12 +30,7 @@
               "@angular/material/prebuilt-themes/azure-blue.css",
               "src/styles.css"
             ],
-            "scripts": [],
-            "server": "src/main.server.ts",
-            "outputMode": "server",
-            "ssr": {
-              "entry": "src/server.ts"
-            }
+            "scripts": []
           },
           "configurations": {
             "production": {
@@ -65,10 +60,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "angularProject:build:production"
+              "buildTarget": "assignment-app:build:production"
             },
             "development": {
-              "buildTarget": "angularProject:build:development"
+              "buildTarget": "assignment-app:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -99,8 +94,5 @@
         }
       }
     }
-  },
-  "cli": {
-    "analytics": "4bef96fb-cadc-45b3-b184-a045e99f10f0"
   }
 }

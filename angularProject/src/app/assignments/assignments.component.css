@@ -1,0 +1,39 @@
+
+.rendu {
+    color:green;
+}
+
+.nonRendu {
+    background-color: yellow;
+    color:red;
+    border: 2px solid red;
+}
+
+table {
+    width: 50%;
+  }
+
+  .mat-column-nom {  
+    width: 400px;
+    border-right: 1px solid currentColor;
+    padding-right: 24px;
+    font-style: italic;
+  }
+  
+  .mat-column-dateDeRendu {
+    width: 50px;
+    padding-left: 16px;
+    text-align: center;
+
+  }
+  
+  .mat-column-demo-rendu {
+    font-style: italic;
+    text-align: center;
+  }
+  
+  .mat-column-demo-id {
+    text-align: center;
+    font-weight: bold;
+  }
+  

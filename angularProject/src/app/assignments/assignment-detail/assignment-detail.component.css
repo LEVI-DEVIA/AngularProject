@@ -1,0 +1,10 @@
+.containerBoutons {
+    display:flex;
+    /* Aligne children horizontalement */
+    justify-content: space-between;
+    /* alignés sur les extrémités */
+    
+    /* Espace entre les children */
+    margin: 10px;
+    
+}
