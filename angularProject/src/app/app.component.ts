@@ -1,33 +1,36 @@
 import { Component } from '@angular/core';
-import { RouterOutlet, RouterLink } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatDividerModule } from '@angular/material/divider';
+import { AuthService } from './services/auth.service';
+import { Router } from '@angular/router';
+import { MatSidenavModule } from '@angular/material/sidenav';
+import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
-import { AssignmentsService } from './shared/assignments.service';
+import { MatButtonModule } from '@angular/material/button';
+import { RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, MatButtonModule, MatDividerModule, 
-    MatIconModule, RouterLink],
   templateUrl: './app.component.html',
-  styleUrl: './app.component.css'
+  styleUrls: ['./app.component.css'],
+  standalone: true,
+  imports: [
+    MatSidenavModule,
+    MatToolbarModule,
+    MatListModule,
+    MatIconModule,
+    MatButtonModule,
+    RouterOutlet
+  ]
 })
 export class AppComponent {
-  titre = 'Premier projet Angular';
+  constructor(private authService: AuthService, private router: Router) {}
 
-  constructor(private assignmentsService: AssignmentsService) {}
+  isLoggedIn(): boolean {
+    return this.authService.isLoggedIn();
+  }
 
-  genererDonneesDeTest() {
-    console.log("Génération des données de test");
-    //this.assignmentsService.peuplerBD()
-
-    this.assignmentsService.peuplerBDavecForkJoin()
-    .subscribe(() => {
-      console.log("Toutes les données de test ont été insérées");
-
-      // Je navigue vers la page qui affiche la liste des assignments
-      window.location.href = '/home';
-    });
-    
+  logout(): void {
+    this.authService.logout();
+    this.router.navigate(['/login']);
   }
 }

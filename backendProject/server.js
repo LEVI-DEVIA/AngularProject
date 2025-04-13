@@ -1,65 +1,143 @@
-let express = require('express');
-let app = express();
-let bodyParser = require('body-parser');
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const bcrypt = require('bcrypt');
+require('dotenv').config();
 
-let assignment = require('./routes/assignments');
+const app = express();
+app.use(cors());
+app.use(express.json());
 
-let mongoose = require('mongoose');
-mongoose.Promise = global.Promise;
-//mongoose.set('debug', true);
+console.log('MONGO_URI:', process.env.MONGO_URI);
 
-// remplacer toute cette chaine par l'URI de connexion à votre propre base dans le cloud s
-//const uri = 'mongodb+srv://mb:P7zM3VePm0caWA1L@cluster0.zqtee.mongodb.net/assignments?retryWrites=true&w=majority';
-const uri= 'mongodb+srv://mb3:toto@cluster0.hswi4vv.mongodb.net/assignments?retryWrites=true&w=majority&appName=Cluster0'
-const options = {
+mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
-  useUnifiedTopology: true,
-  useFindAndModify:false
-};
-
-mongoose.connect(uri, options)
+  useUnifiedTopology: true
+})
   .then(() => {
-    console.log("Connecté à la base MongoDB assignments dans le cloud !");
-    console.log("at URI = " + uri);
-    console.log("vérifiez with http://localhost:8010/api/assignments que cela fonctionne")
-    },
-    err => {
-      console.log('Erreur de connexion: ', err);
-    });
+    console.log('Connecté à MongoDB');
+    console.log('Base de données utilisée:', mongoose.connection.db.databaseName);
+  })
+  .catch(err => console.error('Erreur de connexion à MongoDB:', err));
 
-// Pour accepter les connexions cross-domain (CORS)
-app.use(function (req, res, next) {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  next();
+// Schéma et modèle pour les utilisateurs
+const userSchema = new mongoose.Schema({
+  id: String,
+  nom: String,
+  password: String
 });
 
-// Pour les formulaires
-app.use(bodyParser.urlencoded({extended: true}));
-app.use(bodyParser.json());
+const User = mongoose.model('User', userSchema, 'CollectionMbds');
 
-let port = process.env.PORT || 8010;
+// Schéma et modèle pour les assignments
+const assignmentSchema = new mongoose.Schema({
+  titre: String,
+  description: String,
+  dateDeCreation: String,
+  createdBy: String,
+  assignedTo: String, // Utilisateur auquel l'assignment est destiné
+  matiere: String,
+  note: Number,
+  remarques: String
+});
 
-// les routes
-const prefix = '/api';
+const Assignment = mongoose.model('Assignment', assignmentSchema, 'Assignments');
 
-app.route(prefix + '/assignments')
-  .get(assignment.getAssignmentsAvecPagination);
+// Endpoint pour la connexion
+app.post('/api/login', async (req, res) => {
+  const { nom, password } = req.body;
+  try {
+    const user = await User.findOne({ nom });
+    if (user && await bcrypt.compare(password, user.password)) {
+      res.json({ success: true, user });
+    } else {
+      res.json({ success: false, message: 'Nom d\'utilisateur ou mot de passe incorrect' });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
+});
 
-app.route(prefix + '/assignments/:id')
-  .get(assignment.getAssignment)
-  .delete(assignment.deleteAssignment);
+// Endpoint pour la création de compte
+app.post('/api/signup', async (req, res) => {
+  const { nom, password } = req.body;
+  try {
+    console.log('Tentative de création d\'utilisateur avec nom:', nom);
+    const existingUser = await User.findOne({ nom });
+    if (existingUser) {
+      console.log('Utilisateur existant trouvé:', existingUser);
+      return res.json({ success: false, message: 'Ce nom d\'utilisateur existe déjà' });
+    }
 
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-app.route(prefix + '/assignments')
-  .post(assignment.postAssignment)
-  .put(assignment.updateAssignment);
+    const newUser = new User({
+      id: new mongoose.Types.ObjectId().toString(),
+      nom,
+      password: hashedPassword
+    });
 
-// On démarre le serveur
-app.listen(port, "0.0.0.0");
-console.log('Serveur démarré sur http://localhost:' + port);
+    console.log('Nouvel utilisateur à enregistrer:', newUser);
+    await newUser.save();
+    console.log('Utilisateur enregistré avec succès dans CollectionMbds');
+    res.json({ success: true, user: newUser });
+  } catch (error) {
+    console.error('Erreur lors de la création de l\'utilisateur:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
+});
 
-module.exports = app;
+// Endpoint pour créer un assignment (réservé à l'admin)
+app.post('/api/assignments', async (req, res) => {
+  const { titre, description, dateDeCreation, matiere, note, remarques, createdBy, assignedTo } = req.body;
 
+  try {
+    // Vérifier si l'utilisateur est un admin (par exemple, "LineoL" est l'admin)
+    if (createdBy !== 'LineoL') {
+      return res.status(403).json({ success: false, message: 'Seul un administrateur peut créer un assignment' });
+    }
 
+    const newAssignment = new Assignment({
+      titre,
+      description,
+      dateDeCreation,
+      createdBy,
+      assignedTo, // Ajout du champ assignedTo
+      matiere,
+      note,
+      remarques
+    });
+
+    await newAssignment.save();
+    res.json({ success: true, assignment: newAssignment });
+  } catch (error) {
+    console.error('Erreur lors de la création de l\'assignment:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
+});
+
+// Endpoint pour récupérer les assignments d’un utilisateur spécifique
+app.get('/api/assignments/:nom', async (req, res) => {
+  const { nom } = req.params;
+  try {
+    const assignments = await Assignment.find({ assignedTo: nom }); // Filtrer par assignedTo
+    res.json(assignments);
+  } catch (error) {
+    console.error('Erreur lors de la récupération des assignments:', error);
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
+});
+
+// Endpoint pour récupérer tous les utilisateurs
+app.get('/api/users', async (req, res) => {
+  try {
+    const users = await User.find();
+    res.json(users);
+  } catch (error) {
+    console.error('Erreur lors de la récupération des utilisateurs:', error);
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Serveur démarré sur le port ${PORT}`));

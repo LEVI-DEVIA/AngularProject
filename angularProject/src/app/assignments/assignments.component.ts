@@ -1,125 +1,224 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { RenduDirective } from '../shared/rendu.directive';
-import { NonRenduDirective } from '../shared/non-rendu.directive';
-import { MatButtonModule } from '@angular/material/button';
-import { MatListModule } from '@angular/material/list';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatInputModule } from '@angular/material/input';
-import { MatFormFieldModule } from '@angular/material/form-field';
+import { HttpClient } from '@angular/common/http';
+import { AuthService } from '../services/auth.service';
+import { Router } from '@angular/router';
 import { MatTableModule } from '@angular/material/table';
-import { MatPaginatorModule } from '@angular/material/paginator';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select'; // Ajouter pour la liste déroulante
 import { FormsModule } from '@angular/forms';
-import { Assignment } from './assignment.model';
-import { AssignmentDetailComponent } from './assignment-detail/assignment-detail.component';
-import { AssignmentsService } from '../shared/assignments.service';
-import { Router, RouterLink } from '@angular/router';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-assignments',
-  imports: [CommonModule, RenduDirective, NonRenduDirective,
-    MatListModule, MatDividerModule, MatButtonModule,
-    MatInputModule,MatFormFieldModule,FormsModule,
-    MatTableModule, MatPaginatorModule,
-    RouterLink],
-  templateUrl: './assignments.component.html',
-  styleUrl: './assignments.component.css'
+  template: `
+    <div style="text-align: center; margin: 20px;">
+      <h2>Assignments de {{ currentUser.nom }}</h2>
+      <button mat-raised-button color="warn" (click)="logout()">Se déconnecter</button>
+    </div>
+
+    <!-- Formulaire de création d'assignment (visible uniquement pour l'admin) -->
+    <div *ngIf="authService.isAdmin()" style="max-width: 600px; margin: 20px auto;">
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>Créer un nouvel assignment</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <form (ngSubmit)="createAssignment()">
+            <mat-form-field>
+              <mat-label>Titre</mat-label>
+              <input matInput [(ngModel)]="newAssignment.titre" name="titre" required>
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Description</mat-label>
+              <input matInput [(ngModel)]="newAssignment.description" name="description" required>
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Date de création</mat-label>
+              <input matInput [(ngModel)]="newAssignment.dateDeCreation" name="dateDeCreation" required>
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Assigner à</mat-label>
+              <mat-select [(ngModel)]="newAssignment.assignedTo" name="assignedTo" required>
+                <mat-option *ngFor="let user of users" [value]="user.nom">{{ user.nom }}</mat-option>
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Matière</mat-label>
+              <input matInput [(ngModel)]="newAssignment.matiere" name="matiere" required>
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Note</mat-label>
+              <input matInput type="number" [(ngModel)]="newAssignment.note" name="note" required>
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Remarques</mat-label>
+              <input matInput [(ngModel)]="newAssignment.remarques" name="remarques">
+            </mat-form-field>
+            <button mat-raised-button color="primary" type="submit">Créer</button>
+          </form>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Tableau des assignments -->
+    <table mat-table [dataSource]="assignments" class="mat-elevation-z8">
+      <ng-container matColumnDef="titre">
+        <th mat-header-cell *matHeaderCellDef>Titre</th>
+        <td mat-cell *matCellDef="let assignment">{{ assignment.titre }}</td>
+      </ng-container>
+      <ng-container matColumnDef="description">
+        <th mat-header-cell *matHeaderCellDef>Description</th>
+        <td mat-cell *matCellDef="let assignment">{{ assignment.description }}</td>
+      </ng-container>
+      <ng-container matColumnDef="dateDeCreation">
+        <th mat-header-cell *matHeaderCellDef>Date de création</th>
+        <td mat-cell *matCellDef="let assignment">{{ assignment.dateDeCreation }}</td>
+      </ng-container>
+      <ng-container matColumnDef="createdBy">
+        <th mat-header-cell *matHeaderCellDef>Créé par</th>
+        <td mat-cell *matCellDef="let assignment">{{ assignment.createdBy }}</td>
+      </ng-container>
+      <ng-container matColumnDef="matiere">
+        <th mat-header-cell *matHeaderCellDef>Matière</th>
+        <td mat-cell *matCellDef="let assignment">{{ assignment.matiere }}</td>
+      </ng-container>
+      <ng-container matColumnDef="note">
+        <th mat-header-cell *matHeaderCellDef>Note</th>
+        <td mat-cell *matCellDef="let assignment">{{ assignment.note }}</td>
+      </ng-container>
+      <ng-container matColumnDef="remarques">
+        <th mat-header-cell *matHeaderCellDef>Remarques</th>
+        <td mat-cell *matCellDef="let assignment">{{ assignment.remarques }}</td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
+  `,
+  styles: [`
+    h2 {
+      text-align: center;
+      margin: 20px 0;
+    }
+    .mat-elevation-z8 {
+      width: 100%;
+      margin: 0 auto;
+    }
+    table {
+      width: 90%;
+      margin: 0 auto;
+    }
+    th, td {
+      text-align: center;
+    }
+    mat-form-field {
+      width: 100%;
+      margin-bottom: 10px;
+    }
+    button {
+      width: 100%;
+    }
+  `],
+  standalone: true,
+  imports: [
+    MatTableModule,
+    MatButtonModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule, // Ajouter pour la liste déroulante
+    FormsModule,
+    CommonModule
+  ]
 })
-
 export class AssignmentsComponent implements OnInit {
-  titre = 'Liste des assignments';
-  assignments: Assignment[] = [];
-  
-  // Pour la pagination
-  page = 1;
-  limit = 4;
-  totalDocs = 2000;
-  totalPages = 667;
-  pagingCounter = 1;
-  hasPrevPage = false;
-  hasNextPage = true;
-  prevPage = null;
-  nextPage = 2;
-  // Pour la data table angular
-  displayedColumns: string[] = ['nom', 'dateDeRendu', 'rendu'];
+  assignments: any[] = [];
+  users: any[] = []; // Liste des utilisateurs pour la liste déroulante
+  currentUser: any;
+  displayedColumns: string[] = ['titre', 'description', 'dateDeCreation', 'createdBy', 'matiere', 'note', 'remarques'];
 
-  // Attention, pour l'injection de service, mettre en private !!! Sinon
-  // ça ne marche pas
-  constructor(private assignementsService: AssignmentsService,
-              private router: Router) {}
+  newAssignment = {
+    titre: '',
+    description: '',
+    dateDeCreation: '',
+    createdBy: '',
+    assignedTo: '',
+    matiere: '',
+    note: 0,
+    remarques: ''
+  };
 
-  ngOnInit() {
-    console.log("ngOnInit appelé lors de l'instanciation du composant");
-
-    // On récupère les assignments depuis le service
-    this.getAssignments();
-
-    /*
-    // on veut passer la propriété ajoutActive à true au bout de 3 secondes
-    setTimeout(() => {
-      this.ajoutActive = true;
-    }, 3000);
-    */
+  constructor(
+    private http: HttpClient,
+    public authService: AuthService,
+    private router: Router
+  ) {
+    this.currentUser = this.authService.getCurrentUser();
+    this.newAssignment.createdBy = this.currentUser.nom; // Pré-remplir createdBy avec le nom de l'admin
   }
 
-  getAssignments() {
-    this.assignementsService.getAssignmentsPagines(this.page, this.limit)
-      .subscribe(data => {
-        this.assignments = data.docs;
-        this.page = data.page;
-        this.limit = data.limit;
-        this.totalDocs = data.totalDocs;
-        this.totalPages = data.totalPages;
-        this.pagingCounter = data.pagingCounter;
-        this.hasPrevPage = data.hasPrevPage;
-        this.hasNextPage = data.hasNextPage;
-        this.prevPage = data.prevPage;
-        this.nextPage = data.nextPage;
-
-        console.log("Données reçues dans le subscribe");
-      });
-    console.log("APRES L'APPEL AU SERVICE");
+  ngOnInit(): void {
+    this.loadAssignments();
+    if (this.authService.isAdmin()) {
+      this.loadUsers(); // Charger la liste des utilisateurs si l'utilisateur est un admin
+    }
   }
 
-  pageSuivante() {
-    this.page++;
-    this.getAssignments();
+  loadAssignments(): void {
+    const nom = this.currentUser.nom;
+    this.http.get<any[]>(`http://localhost:3000/api/assignments/${nom}`).subscribe({
+      next: (data) => {
+        this.assignments = data;
+      },
+      error: (err) => {
+        console.error('Erreur lors de la récupération des assignments:', err);
+      }
+    });
   }
 
-  pagePrecedente() {
-    this.page--;
-    this.getAssignments();
+  loadUsers(): void {
+    this.http.get<any[]>('http://localhost:3000/api/users').subscribe({
+      next: (data) => {
+        this.users = data; // Charger tous les utilisateurs pour la liste déroulante
+      },
+      error: (err) => {
+        console.error('Erreur lors de la récupération des utilisateurs:', err);
+      }
+    });
   }
 
-  dernierePage() {
-    this.page = this.totalPages;
-    this.getAssignments();
-  }
-  premierePage() {
-    this.page = 1;
-    this.getAssignments();
+  createAssignment(): void {
+    this.http.post(`http://localhost:3000/api/assignments`, this.newAssignment).subscribe({
+      next: (response: any) => {
+        if (response.success) {
+          // Si l'assignment est créé pour l'utilisateur actuel, l'ajouter à la liste
+          if (this.newAssignment.assignedTo === this.currentUser.nom) {
+            this.assignments.push(response.assignment);
+          }
+          this.newAssignment = { // Réinitialiser le formulaire
+            titre: '',
+            description: '',
+            dateDeCreation: '',
+            createdBy: this.currentUser.nom,
+            assignedTo: '',
+            matiere: '',
+            note: 0,
+            remarques: ''
+          };
+        }
+      },
+      error: (err) => {
+        console.error('Erreur lors de la création de l\'assignment:', err);
+        alert(err.error.message || 'Une erreur est survenue lors de la création de l\'assignment.');
+      }
+    });
   }
 
-  // Pour le composant material paginator
-  onPageEvent(event: any) {
-    console.log(event);
-    this.page = event.pageIndex + 1;
-    this.limit = event.pageSize;
-    this.getAssignments();
-  }
-
-  getColor(a: any): string {
-    if (a.rendu) return 'green';
-    else
-      return 'red';
-  }
-
-  afficheDetail(row: any) {
-    console.log(row);
-    // On récupère l'id de l'assignment situé dans la colonne _id de la ligne
-    // sélectionnée
-    let id = row._id;
-    // et on utilise le routeur pour afficher le détail de l'assignment
-    this.router.navigate(['/assignments', id]);
+  logout(): void {
+    this.authService.logout();
+    this.router.navigate(['/login']);
   }
 }
