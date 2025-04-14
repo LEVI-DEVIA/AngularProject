@@ -7,7 +7,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select'; // Ajouter pour la liste déroulante
+import { MatSelectModule } from '@angular/material/select';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 
@@ -16,7 +17,7 @@ import { CommonModule } from '@angular/common';
   template: `
     <div style="text-align: center; margin: 20px;">
       <h2>Assignments de {{ currentUser.nom }}</h2>
-      <button mat-raised-button color="warn" (click)="logout()">Se déconnecter</button>
+      <!-- Bouton "Se déconnecter" retiré, car il est maintenant dans la sidebar -->
     </div>
 
     <!-- Formulaire de création d'assignment (visible uniquement pour l'admin) -->
@@ -81,6 +82,10 @@ import { CommonModule } from '@angular/common';
         <th mat-header-cell *matHeaderCellDef>Créé par</th>
         <td mat-cell *matCellDef="let assignment">{{ assignment.createdBy }}</td>
       </ng-container>
+      <ng-container matColumnDef="assignedTo">
+        <th mat-header-cell *matHeaderCellDef>Assigné à</th>
+        <td mat-cell *matCellDef="let assignment">{{ assignment.assignedTo }}</td>
+      </ng-container>
       <ng-container matColumnDef="matiere">
         <th mat-header-cell *matHeaderCellDef>Matière</th>
         <td mat-cell *matCellDef="let assignment">{{ assignment.matiere }}</td>
@@ -129,16 +134,17 @@ import { CommonModule } from '@angular/common';
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,
-    MatSelectModule, // Ajouter pour la liste déroulante
+    MatSelectModule,
+    MatSnackBarModule,
     FormsModule,
     CommonModule
   ]
 })
 export class AssignmentsComponent implements OnInit {
   assignments: any[] = [];
-  users: any[] = []; // Liste des utilisateurs pour la liste déroulante
+  users: any[] = [];
   currentUser: any;
-  displayedColumns: string[] = ['titre', 'description', 'dateDeCreation', 'createdBy', 'matiere', 'note', 'remarques'];
+  displayedColumns: string[] = ['titre', 'description', 'dateDeCreation', 'createdBy', 'assignedTo', 'matiere', 'note', 'remarques'];
 
   newAssignment = {
     titre: '',
@@ -154,23 +160,27 @@ export class AssignmentsComponent implements OnInit {
   constructor(
     private http: HttpClient,
     public authService: AuthService,
-    private router: Router
+    private router: Router,
+    private snackBar: MatSnackBar
   ) {
     this.currentUser = this.authService.getCurrentUser();
-    this.newAssignment.createdBy = this.currentUser.nom; // Pré-remplir createdBy avec le nom de l'admin
+    this.newAssignment.createdBy = this.currentUser.nom;
   }
 
   ngOnInit(): void {
     this.loadAssignments();
     if (this.authService.isAdmin()) {
-      this.loadUsers(); // Charger la liste des utilisateurs si l'utilisateur est un admin
+      this.loadUsers();
     }
   }
 
   loadAssignments(): void {
     const nom = this.currentUser.nom;
-    this.http.get<any[]>(`http://localhost:3000/api/assignments/${nom}`).subscribe({
+    console.log(`Chargement des assignments pour: ${nom}`);
+    const endpoint = `http://localhost:3000/api/assignments?nom=${nom}`;
+    this.http.get<any[]>(endpoint).subscribe({
       next: (data) => {
+        console.log('Assignments reçus:', data);
         this.assignments = data;
       },
       error: (err) => {
@@ -182,7 +192,7 @@ export class AssignmentsComponent implements OnInit {
   loadUsers(): void {
     this.http.get<any[]>('http://localhost:3000/api/users').subscribe({
       next: (data) => {
-        this.users = data; // Charger tous les utilisateurs pour la liste déroulante
+        this.users = data;
       },
       error: (err) => {
         console.error('Erreur lors de la récupération des utilisateurs:', err);
@@ -191,14 +201,21 @@ export class AssignmentsComponent implements OnInit {
   }
 
   createAssignment(): void {
+    console.log('Création d’un assignment:', this.newAssignment);
     this.http.post(`http://localhost:3000/api/assignments`, this.newAssignment).subscribe({
       next: (response: any) => {
         if (response.success) {
-          // Si l'assignment est créé pour l'utilisateur actuel, l'ajouter à la liste
-          if (this.newAssignment.assignedTo === this.currentUser.nom) {
+          this.snackBar.open(`Assignment "${response.assignment.titre}" créé pour ${response.assignment.assignedTo}`, 'OK', {
+            duration: 3000,
+            verticalPosition: 'top'
+          });
+
+          if (this.authService.isAdmin()) {
+            console.log('Ajout de l’assignment au tableau pour l’admin:', response.assignment);
             this.assignments.push(response.assignment);
           }
-          this.newAssignment = { // Réinitialiser le formulaire
+
+          this.newAssignment = {
             titre: '',
             description: '',
             dateDeCreation: '',
@@ -212,13 +229,11 @@ export class AssignmentsComponent implements OnInit {
       },
       error: (err) => {
         console.error('Erreur lors de la création de l\'assignment:', err);
-        alert(err.error.message || 'Une erreur est survenue lors de la création de l\'assignment.');
+        this.snackBar.open(err.error.message || 'Erreur lors de la création de l\'assignment', 'OK', {
+          duration: 3000,
+          verticalPosition: 'top'
+        });
       }
     });
-  }
-
-  logout(): void {
-    this.authService.logout();
-    this.router.navigate(['/login']);
   }
 }

@@ -87,32 +87,22 @@ app.post('/api/signup', async (req, res) => {
   }
 });
 
-// Endpoint pour créer un assignment (réservé à l'admin)
-app.post('/api/assignments', async (req, res) => {
-  const { titre, description, dateDeCreation, matiere, note, remarques, createdBy, assignedTo } = req.body;
-
+app.get('/api/assignments', async (req, res) => {
+  const { nom } = req.query;
   try {
-    // Vérifier si l'utilisateur est un admin (par exemple, "LineoL" est l'admin)
-    if (createdBy !== 'LineoL') {
-      return res.status(403).json({ success: false, message: 'Seul un administrateur peut créer un assignment' });
+    let assignments;
+    if (nom && nom === 'LineoL') {
+      assignments = await Assignment.find({ createdBy: nom });
+    } else if (nom) {
+      assignments = await Assignment.find({ assignedTo: nom });
+    } else {
+      assignments = await Assignment.find();
     }
-
-    const newAssignment = new Assignment({
-      titre,
-      description,
-      dateDeCreation,
-      createdBy,
-      assignedTo, // Ajout du champ assignedTo
-      matiere,
-      note,
-      remarques
-    });
-
-    await newAssignment.save();
-    res.json({ success: true, assignment: newAssignment });
+    console.log(`Assignments trouvés pour nom=${nom}:`, assignments);
+    res.json(assignments);
   } catch (error) {
-    console.error('Erreur lors de la création de l\'assignment:', error);
-    res.status(500).json({ success: false, message: 'Erreur serveur' });
+    console.error('Erreur lors de la récupération des assignments:', error);
+    res.status(500).json({ message: 'Erreur serveur' });
   }
 });
 
@@ -120,7 +110,9 @@ app.post('/api/assignments', async (req, res) => {
 app.get('/api/assignments/:nom', async (req, res) => {
   const { nom } = req.params;
   try {
-    const assignments = await Assignment.find({ assignedTo: nom }); // Filtrer par assignedTo
+    console.log(`Recherche des assignments pour assignedTo: ${nom}`);
+    const assignments = await Assignment.find({ assignedTo: nom });
+    console.log(`Assignments trouvés:`, assignments);
     res.json(assignments);
   } catch (error) {
     console.error('Erreur lors de la récupération des assignments:', error);
