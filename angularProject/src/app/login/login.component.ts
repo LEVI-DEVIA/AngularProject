@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { AuthService } from '../services/auth.service';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -19,7 +19,8 @@ import { CommonModule } from '@angular/common';
     MatInputModule,
     MatButtonModule,
     FormsModule,
-    CommonModule
+    CommonModule,
+    RouterLink
   ]
 })
 export class LoginComponent implements OnInit {

@@ -131,5 +131,29 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
+// Endpoint pour mettre à jour un assignment
+app.put('/api/assignments/:id', async (req, res) => {
+  const { id } = req.params;
+  const updatedAssignment = req.body;
+
+  try {
+    const assignment = await Assignment.findById(id);
+    if (!assignment) {
+      return res.status(404).json({ success: false, message: 'Assignment non trouvé' });
+    }
+
+    // Vérifier si l'utilisateur est un admin (par exemple, "LineoL")
+    if (assignment.createdBy !== 'LineoL') {
+      return res.status(403).json({ success: false, message: 'Seul l\'administrateur peut modifier un assignment' });
+    }
+
+    const result = await Assignment.findByIdAndUpdate(id, updatedAssignment, { new: true });
+    res.json(result);
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour de l\'assignment:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Serveur démarré sur le port ${PORT}`));
