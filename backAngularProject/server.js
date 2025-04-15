@@ -10,12 +10,15 @@ app.use(express.json());
 
 console.log('MONGO_URI:', process.env.MONGO_URI);
 
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('Connecté à MongoDB'))
-  .catch(err => {
-    console.error('Erreur de connexion à MongoDB:', err);
-    process.exit(1);
-  });
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+  .then(() => {
+    console.log('Connecté à MongoDB');
+    console.log('Base de données utilisée:', mongoose.connection.db.databaseName);
+  })
+  .catch(err => console.error('Erreur de connexion à MongoDB:', err));
 
 // Schéma et modèle pour les utilisateurs
 const userSchema = new mongoose.Schema({
