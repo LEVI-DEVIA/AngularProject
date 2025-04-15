@@ -1,6 +1,9 @@
 {
   "name": "assignments-api",
   "version": "1.0.0",
+  "engines": {
+    "node": ">=18 <19"
+  },
   "description": "",
   "main": "server.js",
   "scripts": {
@@ -10,6 +13,7 @@
   "author": "Sam Orgill",
   "license": "ISC",
   "dependencies": {
+    "@types/node": "^22.14.1",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
