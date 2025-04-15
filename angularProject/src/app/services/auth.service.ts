@@ -11,8 +11,6 @@ export class AuthService {
 
   constructor(private http: HttpClient) {}
 
-  
-
   // Méthode pour la connexion
   login(nom: string, password: string): Observable<boolean> {
     return this.http.post<{ success: boolean; user: any; message?: string }>(`${this.apiUrl}/login`, { nom, password })
