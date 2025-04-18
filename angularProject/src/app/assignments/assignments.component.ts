@@ -14,7 +14,51 @@ import { MatDialog, MatDialogModule, MAT_DIALOG_DATA, MatDialogRef } from '@angu
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 
-// Composant pour la boîte de dialogue de modification
+// Assignment interface for type safety
+interface Assignment {
+  _id: string;
+  titre: string;
+  description: string;
+  dateDeCreation: string;
+  createdBy: string;
+  assignedTo: string;
+  matiere: string;
+  note: number;
+  remarques: string;
+}
+
+// Dialog for confirming deletion
+@Component({
+  selector: 'app-confirm-delete-dialog',
+  template: `
+    <h2 mat-dialog-title>Confirmer la suppression</h2>
+    <mat-dialog-content>
+      <p>Êtes-vous sûr de vouloir supprimer l'assignment "{{ data.titre }}" ?</p>
+    </mat-dialog-content>
+    <mat-dialog-actions>
+      <button mat-button (click)="onCancel()">Annuler</button>
+      <button mat-raised-button color="warn" (click)="onConfirm()">Supprimer</button>
+    </mat-dialog-actions>
+  `,
+  standalone: true,
+  imports: [MatDialogModule, MatButtonModule]
+})
+export class ConfirmDeleteDialog {
+  constructor(
+    public dialogRef: MatDialogRef<ConfirmDeleteDialog>,
+    @Inject(MAT_DIALOG_DATA) public data: { titre: string }
+  ) {}
+
+  onCancel(): void {
+    this.dialogRef.close(false);
+  }
+
+  onConfirm(): void {
+    this.dialogRef.close(true);
+  }
+}
+
+// Dialog for editing assignments
 @Component({
   selector: 'app-edit-assignment-dialog',
   template: `
@@ -70,12 +114,12 @@ import { CommonModule } from '@angular/common';
   ]
 })
 export class EditAssignmentDialog {
-  assignment: any;
+  assignment: Assignment;
   users: any[];
 
   constructor(
     public dialogRef: MatDialogRef<EditAssignmentDialog>,
-    @Inject(MAT_DIALOG_DATA) public data: { assignment: any; users: any[] }
+    @Inject(MAT_DIALOG_DATA) public data: { assignment: Assignment; users: any[] }
   ) {
     this.assignment = { ...data.assignment };
     this.users = data.users;
@@ -90,6 +134,7 @@ export class EditAssignmentDialog {
   }
 }
 
+// Main Assignments Component
 @Component({
   selector: 'app-assignments',
   template: `
@@ -191,7 +236,7 @@ export class EditAssignmentDialog {
               <button mat-icon-button color="primary" (click)="editAssignment(assignment)" *ngIf="authService.isAdmin()">
                 <mat-icon>edit</mat-icon>
               </button>
-              <button mat-icon-button color="warn" (click)="deleteAssignment(assignment)" *ngIf="authService.isAdmin()">
+              <button mat-icon-button color="warn" (click)="deleteAssignment(assignment)" *ngIf="authService.isAdmin()" [disabled]="isDeleting">
                 <mat-icon>delete</mat-icon>
               </button>
             </td>
@@ -325,13 +370,16 @@ export class EditAssignmentDialog {
     MatIconModule,
     MatDialogModule,
     FormsModule,
-    CommonModule
+    CommonModule,
+    ConfirmDeleteDialog,
+    EditAssignmentDialog
   ]
 })
 export class AssignmentsComponent implements OnInit {
-  assignments: any[] = [];
+  assignments: Assignment[] = [];
   users: any[] = [];
   currentUser: any;
+  isDeleting = false;
   displayedColumns: string[] = ['titre', 'description', 'dateDeCreation', 'createdBy', 'assignedTo', 'matiere', 'note', 'remarques', 'actions'];
 
   newAssignment = {
@@ -367,7 +415,7 @@ export class AssignmentsComponent implements OnInit {
     const nom = this.currentUser.nom;
     console.log(`Chargement des assignments pour: ${nom}`);
     const endpoint = `http://localhost:3000/api/assignments?nom=${nom}`;
-    this.http.get<any[]>(endpoint).subscribe({
+    this.http.get<Assignment[]>(endpoint).subscribe({
       next: (data) => {
         console.log('Assignments reçus:', data);
         this.assignments = data.filter(assignment => {
@@ -445,7 +493,7 @@ export class AssignmentsComponent implements OnInit {
     });
   }
 
-  editAssignment(assignment: any): void {
+  editAssignment(assignment: Assignment): void {
     if (!assignment._id) {
       this.snackBar.open('Erreur : ID de l\'assignment manquant', 'OK', { duration: 3000, verticalPosition: 'top' });
       return;
@@ -481,27 +529,39 @@ export class AssignmentsComponent implements OnInit {
     });
   }
 
-  deleteAssignment(assignment: any): void {
-    if (!assignment._id) {
-      this.snackBar.open('Erreur : ID de l\'assignment manquant', 'OK', { duration: 3000, verticalPosition: 'top' });
+  deleteAssignment(assignment: Assignment): void {
+    if (!assignment._id || this.isDeleting) {
+      this.snackBar.open('Erreur : ID de l\'assignment manquant ou suppression en cours', 'OK', { duration: 3000, verticalPosition: 'top' });
       return;
     }
-    console.log('Suppression de l\'assignment avec ID:', assignment._id);
-    if (confirm('Êtes-vous sûr de vouloir supprimer cet assignment ?')) {
-      this.http.delete(`http://localhost:3000/api/assignments/${assignment._id}`).subscribe({
-        next: (response: any) => {
-          console.log('Réponse du serveur après suppression:', response);
-          this.snackBar.open(response.message || 'Assignment supprimé avec succès', 'OK', { duration: 3000, verticalPosition: 'top' });
-          this.assignments = this.assignments.filter(a => a._id !== assignment._id);
-        },
-        error: (err) => {
-          console.error('Erreur lors de la suppression:', err);
-          this.snackBar.open(err.error.message || 'Erreur lors de la suppression de l\'assignment', 'OK', {
-            duration: 3000,
-            verticalPosition: 'top'
-          });
-        }
-      });
-    }
+    const dialogRef = this.dialog.open(ConfirmDeleteDialog, {
+      width: '400px',
+      data: { titre: assignment.titre }
+    });
+    dialogRef.afterClosed().subscribe(confirmed => {
+      if (confirmed) {
+        this.isDeleting = true;
+        this.http.delete(`http://localhost:3000/api/assignments/${assignment._id}`).subscribe({
+          next: (response: any) => {
+            if (response.success) {
+              this.snackBar.open(response.message || 'Assignment supprimé avec succès', 'OK', { duration: 3000, verticalPosition: 'top' });
+              this.assignments = this.assignments.filter(a => a._id !== assignment._id);
+            } else {
+              this.snackBar.open(response.message || 'Erreur lors de la suppression', 'OK', { duration: 3000, verticalPosition: 'top' });
+            }
+          },
+          error: (err) => {
+            console.error('Erreur lors de la suppression:', err);
+            this.snackBar.open(err.error.message || 'Erreur lors de la suppression de l\'assignment', 'OK', {
+              duration: 3000,
+              verticalPosition: 'top'
+            });
+          },
+          complete: () => {
+            this.isDeleting = false;
+          }
+        });
+      }
+    });
   }
 }

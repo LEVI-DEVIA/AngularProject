@@ -29,7 +29,7 @@ const assignmentSchema = new mongoose.Schema({
   description: String,
   dateDeCreation: String,
   createdBy: String,
-  assignedTo: String, // Utilisateur auquel l'assignment est destiné
+  assignedTo: String,
   matiere: String,
   note: Number,
   remarques: String
@@ -81,6 +81,48 @@ app.post('/api/signup', async (req, res) => {
   }
 });
 
+// Endpoint pour créer un assignment
+app.post('/api/assignments', async (req, res) => {
+  const { titre, description, dateDeCreation, createdBy, assignedTo, matiere, note, remarques } = req.body;
+  try {
+    // Vérifier si l'utilisateur est un admin (par exemple, "LineoL")
+    if (createdBy !== 'LineoL') {
+      return res.status(403).json({ success: false, message: 'Seul l\'administrateur peut créer un assignment' });
+    }
+
+    // Vérifier les champs obligatoires
+    if (!titre || !description || !dateDeCreation || !assignedTo || !matiere || note === undefined) {
+      return res.status(400).json({ success: false, message: 'Tous les champs obligatoires doivent être remplis' });
+    }
+
+    // Vérifier si l'utilisateur assigné existe
+    const user = await User.findOne({ nom: assignedTo });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Utilisateur assigné non trouvé' });
+    }
+
+    const newAssignment = new Assignment({
+      titre,
+      description,
+      dateDeCreation,
+      createdBy,
+      assignedTo,
+      matiere,
+      note,
+      remarques
+    });
+
+    console.log('Nouvel assignment à enregistrer:', newAssignment);
+    await newAssignment.save();
+    console.log('Assignment enregistré avec succès dans Assignments');
+    res.json({ success: true, assignment: newAssignment });
+  } catch (error) {
+    console.error('Erreur lors de la création de l\'assignment:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
+});
+
+// Endpoint pour récupérer tous les assignments
 app.get('/api/assignments', async (req, res) => {
   const { nom } = req.query;
   try {
@@ -145,6 +187,29 @@ app.put('/api/assignments/:id', async (req, res) => {
     res.json(result);
   } catch (error) {
     console.error('Erreur lors de la mise à jour de l\'assignment:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
+});
+
+// Endpoint pour supprimer un assignment
+app.delete('/api/assignments/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const assignment = await Assignment.findById(id);
+    if (!assignment) {
+      return res.status(404).json({ success: false, message: 'Assignment non trouvé' });
+    }
+
+    // Vérifier si l'utilisateur est un admin (par exemple, "LineoL")
+    if (assignment.createdBy !== 'LineoL') {
+      return res.status(403).json({ success: false, message: 'Seul l\'administrateur peut supprimer un assignment' });
+    }
+
+    await Assignment.findByIdAndDelete(id);
+    console.log(`Assignment avec ID ${id} supprimé avec succès`);
+    res.json({ success: true, message: 'Assignment supprimé avec succès' });
+  } catch (error) {
+    console.error('Erreur lors de la suppression de l\'assignment:', error);
     res.status(500).json({ success: false, message: 'Erreur serveur' });
   }
 });
