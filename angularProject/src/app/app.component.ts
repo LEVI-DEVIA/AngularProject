@@ -81,6 +81,7 @@ import { CommonModule } from '@angular/common';
       display: flex;
       flex-direction: column;
       height: 100%;
+      background-color: #fff;
     }
 
     .toggle-button {
