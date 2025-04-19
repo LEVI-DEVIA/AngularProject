@@ -7,7 +7,7 @@ import { map } from 'rxjs/operators';
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'http://localhost:3000/api'; // URL de votre backend
+  private apiUrl = 'https://angularproject-si38.onrender.com/api'; // URL de votre backend
 
   constructor(private http: HttpClient) {}
 

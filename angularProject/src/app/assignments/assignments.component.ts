@@ -571,7 +571,7 @@ export class AssignmentsComponent implements OnInit {
   loadAssignments(): void {
     const nom = this.currentUser.nom;
     console.log(`Chargement des assignments pour: ${nom}`);
-    const endpoint = `http://localhost:3000/api/assignments?nom=${nom}`;
+    const endpoint = `https://angularproject-si38.onrender.com/api/assignments?nom=${nom}`;
     this.http.get<Assignment[]>(endpoint).subscribe({
       next: (data) => {
         console.log('Assignments reçus:', data);
@@ -599,7 +599,7 @@ export class AssignmentsComponent implements OnInit {
   }
 
   loadUsers(): void {
-    this.http.get<any[]>('http://localhost:3000/api/users').subscribe({
+    this.http.get<any[]>('https://angularproject-si38.onrender.com/api/users').subscribe({
       next: (data) => {
         this.users = data;
       },
@@ -615,7 +615,7 @@ export class AssignmentsComponent implements OnInit {
 
   createAssignment(): void {
     console.log('Création d’un assignment:', this.newAssignment);
-    this.http.post(`http://localhost:3000/api/assignments`, this.newAssignment).subscribe({
+    this.http.post(`https://angularproject-si38.onrender.com/api/assignments`, this.newAssignment).subscribe({
       next: (response: any) => {
         if (response.success) {
           this.snackBar.open(`Assignment "${response.assignment.titre}" créé pour ${response.assignment.assignedTo}`, 'OK', {
@@ -664,7 +664,7 @@ export class AssignmentsComponent implements OnInit {
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
         console.log('Données mises à jour à envoyer:', result);
-        this.http.put(`http://localhost:3000/api/assignments/${assignment._id}`, result).subscribe({
+        this.http.put(`https://angularproject-si38.onrender.com/api/assignments/${assignment._id}`, result).subscribe({
           next: (response: any) => {
             console.log('Réponse du serveur après modification:', response);
             this.snackBar.open('Assignment mis à jour avec succès', 'OK', { duration: 3000, verticalPosition: 'top' });
@@ -698,7 +698,7 @@ export class AssignmentsComponent implements OnInit {
     dialogRef.afterClosed().subscribe(confirmed => {
       if (confirmed) {
         this.isDeleting = true;
-        this.http.delete(`http://localhost:3000/api/assignments/${assignment._id}`).subscribe({
+        this.http.delete(`https://angularproject-si38.onrender.com/api/assignments/${assignment._id}`).subscribe({
           next: (response: any) => {
             if (response.success) {
               this.snackBar.open(response.message || 'Assignment supprimé avec succès', 'OK', { duration: 3000, verticalPosition: 'top' });
