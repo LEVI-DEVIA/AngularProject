@@ -1,13 +1,8 @@
 # Gestion des Assignments - Application Angular
-
 ## Description
-
 Ce projet est une application web développée avec **Angular** (frontend) et **Node.js** (backend) pour gérer des assignments (devoirs) dans un contexte académique. L'application permet à un administrateur (`LineoL`) de créer, modifier, et supprimer des assignments, et aux utilisateurs réguliers de consulter les assignments qui leur sont attribués. Elle inclut une interface utilisateur moderne avec Angular Material, une sidebar pour la navigation, et un backend connecté à une base de données MongoDB.
-
 ---
-
 ## Fonctionnalités Implémentées
-
 ### 1. Frontend (Angular)
 - **Architecture Standalone** : L'application utilise des composants standalone (pas de `NgModule`), ce qui simplifie la structure du projet.
 - **Authentification Simple** :
@@ -28,7 +23,6 @@ Ce projet est une application web développée avec **Angular** (frontend) et **
 - **Interface Utilisateur** :
   - Utilisation d'Angular Material pour les composants (tableau, formulaires, sidebar, boîtes de dialogue, notifications).
   - Notifications avec `MatSnackBar` pour confirmer les actions (création, modification, suppression).
-
 ### 2. Backend (Node.js)
 - **API REST** :
   - Endpoints pour gérer les utilisateurs (`/api/users`) et les assignments (`/api/assignments`).
@@ -41,15 +35,58 @@ Ce projet est une application web développée avec **Angular** (frontend) et **
   - Collections : `Users` (utilisateurs) et `Assignments` (assignments).
 - **Sécurité** :
   - Vérification que seul l'admin (`LineoL`) peut créer, modifier, ou supprimer des assignments.
-
 ---
-
 ## Prérequis
-
 Pour exécuter cette application sur votre machine, vous devez avoir les outils suivants installés :
-
 - **Node.js** (version 18 ou supérieure) : [Télécharger](https://nodejs.org/)
 - **Angular CLI** (version 17 ou supérieure) : Installez-le globalement avec :
   ```bash
   npm install -g @angular/cli
-  
+  ```
+- **MongoDB** (version 4.4 ou supérieure) : [Télécharger](https://www.mongodb.com/try/download/community)
+
+---
+## Installation et Exécution
+### 1. Cloner le Répertoire
+```bash
+git clone https://github.com/LEVI-DEVIA/AngularProject.git
+cd AngularProject
+```
+
+### 2. Installer les Dépendances
+Pour installer les dépendances du frontend et du backend :
+```bash
+# Dans le dossier racine du projet
+npm install
+```
+
+### 3. Démarrer l'Application
+Pour démarrer l'application en mode développement :
+```bash
+# Démarrer le serveur backend
+npm run start:server
+
+# Dans un autre terminal, démarrer le frontend Angular
+ng serve
+```
+
+L'application sera accessible à l'adresse local.
+
+---
+## Génération des Données
+Pour faciliter les tests et démonstrations, nous avons utilisé [Mockaroo](https://www.mockaroo.com/) pour générer un ensemble de données d'assignments fictifs. Cet outil nous a permis de créer rapidement des données réalistes pour peupler notre base de données MongoDB.
+
+---
+## Connexion Admin
+Pour accéder aux fonctionnalités d'administration (création, modification et suppression d'assignments), utilisez les identifiants suivants :
+- **Nom d'utilisateur** : LineoL
+- **Mot de passe** : test1
+
+---
+## Notes Techniques
+- **Gestion des Dates** : En raison de certaines difficultés rencontrées lors de la manipulation des dates dans notre application, nous avons opté pour stocker les dates sous forme de chaînes de caractères (string) plutôt que d'utiliser le type Date natif de JavaScript/TypeScript.
+
+
+---
+## Fonctionnalités Impréssionnant
+- Animation sur les différents formulaires pour un design de qualité
